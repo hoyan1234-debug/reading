@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>課文朗讀程式</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* 移除平板點擊時的閃爍反白 */
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000; /* 極高對比：黑底 */
+            color: #FFFF00; /* 極高對比：黃字 */
+            font-family: "Microsoft JhengHei", "PingFang HK", sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 防止滾動 */
+        }
+        /* 主要文字顯示區：佔畫面 50% */
+        #readArea {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5%;
+            font-size: 6vw; /* 根據平板螢幕寬度自動調整巨大字體 */
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid #555;
+            line-height: 1.5;
+        }
+        #readArea:active {
+            background-color: #222; /* 點擊時的視覺回饋 */
+        }
+        
+        /* 聽按鈕區：佔畫面 25% */
+        #listenBtn {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 8vw; /* 特大按鈕圖案及文字 */
+            font-weight: bold;
+            background-color: #FFD700; /* 金黃色背景，極高對比 */
+            color: #000000; /* 黑色文字 */
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid #555;
+        }
+        #listenBtn:active {
+            background-color: #CCAC00; /* 點擊時變暗 */
+        }
+
+        /* 底部控制區（上一句/下一句）：佔畫面 25% */
+        #controls {
+            flex: 1;
+            display: flex;
+            width: 100%;
+        }
+        .nav-btn {
+            flex: 1;
+            font-size: 5vw;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            color: #FFFFFF;
+        }
+        #prevBtn {
+            background-color: #0055A4; /* 藍色 */
+            border-right: 2px solid #000;
+        }
+        #nextBtn {
+            background-color: #008000; /* 綠色，引導前進 */
+            border-left: 2px solid #000;
+        }
+        .nav-btn:active {
+            opacity: 0.7; /* 點擊時變暗 */
+        }
+        .nav-btn:disabled {
+            background-color: #333;
+            color: #666;
+        }
+        /* 提示小字 */
+        .hint {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 2vw;
+            color: #888;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hint">按畫面文字或「聽」按鈕皆可朗讀</div>
+    
+    <div id="readArea"></div>
+
+    <button id="listenBtn">🔊 聽</button>
+
+    <div id="controls">
+        <button id="prevBtn" class="nav-btn">⬅️ 上一句</button>
+        <button id="nextBtn" class="nav-btn">下一句 ➡️</button>
+    </div>
+
+    <script>
+        // 更新後的課文陣列
+        const story = [
+            "昨天早上，我感到身體不適，媽媽馬上帶我到瑪麗醫院求診。",
+            "在醫院裏，我們先辦理登記手續，然後護士替我以體温計量體温，原來我發熱。",
+            "接著，我便在候診室耐心地等候。",
+            "一小時後，呼喚我的名字，輪到我進入診症室了。",
+            "首先，醫生問我身體有何不適，我告訴他我感到發熱、流鼻水、打噴嚏、咳嗽和喉嚨不適。",
+            "然後，他把聽診器放在我胸前，替我檢查，診斷我患了流行性感冒。",
+            "醫生處方了藥丸和藥水給我，並吩咐我依時服藥，連忙點頭答應。",
+            "他說如果服藥後仍未痊癒，便需要替我打針了，我驚怕得很，搖着手別個頭。",
+            "看過醫生後，媽媽趕着上班，讓我自行打電話給老師請病假。",
+            "我向老師描述自己的病情，她着我好好休息，身體痊癒後才回校，她還讚我懂得自己請病假，很能幹呢！"
+        ];
+
+        let currentIndex = 0;
+        const readArea = document.getElementById('readArea');
+        const listenBtn = document.getElementById('listenBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // 更新畫面顯示
+        function updateDisplay() {
+            readArea.innerText = story[currentIndex];
+            
+            // 處理按鈕狀態（第一句時停用「上一句」，最後一句時停用「下一句」）
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === story.length - 1;
+        }
+
+        // 朗讀功能
+        function speakCurrentSentence() {
+            // 停止正在播放的語音
+            window.speechSynthesis.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(story[currentIndex]);
+            utterance.lang = 'zh-HK'; // 設定為廣東話
+            utterance.rate = 0.6;     // 語速設定為慢速 (適合智障學生)
+            utterance.pitch = 1.0;    // 音高
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 綁定事件：按文字區或按「聽」按鈕都會觸發朗讀
+        readArea.addEventListener('click', speakCurrentSentence);
+        listenBtn.addEventListener('click', speakCurrentSentence);
+        
+        // 換句控制
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateDisplay();
+                window.speechSynthesis.cancel(); // 換句時停止聲音
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < story.length - 1) {
+                currentIndex++;
+                updateDisplay();
+                window.speechSynthesis.cancel(); // 換句時停止聲音
+            }
+        });
+
+        // 啟動時初始化畫面
+        updateDisplay();
+    </script>
+</body>
+</html>
